@@ -1,0 +1,63 @@
+#1.How many albums does the artist Led Zeppelin have? 
+
+Select count(a.Title) AS albums_number_of_LZ
+FROM albums a Inner join artists r
+On a.ArtistID = r.ArtistID
+Where r.Name = "Led Zeppelin"
+
+#2.Create a list of album titles and the unit prices for the artist "Audioslave".
+
+Select a.Title AS albums_of_Audioslave
+, i.UnitPrice 
+From albums a Inner join invoice_items i
+On a.AlbumId = i.TrackID
+Where a.AlbumId in (
+    Select a.AlbumID 
+    FROM albums a Inner join artists r
+    On a.ArtistID = r.ArtistID
+    Where r.Name = "Audioslave")
+    
+select a.UnitPrice,b.Title,b.Name
+from (
+      select tracks.AlbumId
+      ,invoice_items.UnitPrice
+      from tracks
+      left join invoice_items
+      on tracks.TrackId=invoice_items.TrackId) as a
+left join (
+      select artists.Name
+      ,albums.Title
+      ,albums.AlbumId
+      from artists
+      left join albums
+      on artists.ArtistId=albums.ArtistId) as b
+on a.AlbumId=b.AlbumId
+where b.Name="Audioslave";
+
+#3.Find the first and last name of any customer who does not have an invoice. Are there any customers returned from the query?  
+
+Select c.FirstName
+, c.LastName
+From customers c 
+Where c.CustomerId not in (
+    Select c.CustomerId
+    From customers c inner join invoices i
+    where not c. CustomerId = i.CustomerId
+)
+/*
+select customers.FirstName,customers.LastName,
+invoices.InvoiceId
+from customers
+left join invoices
+on customers.CustomerId=invoices.CustomerId
+where invoices.InvoiceId is null;
+*/
+
+#4.Find the total price for each album.
+
+
+
+#5.How many records are created when you apply a Cartesian join to the invoice and invoice items table?
+
+Select count(*) from invoices
+Select count(*) from invoice_items
