@@ -1,0 +1,44 @@
+# 1. Pull a list of customer ids with the customer’s full name, and address, along with combining their city and country together. 
+# Be sure to make a space in between these two and make it UPPER CASE. (e.g. LOS ANGELES USA)
+
+Select CustomerId
+, FirstName
+, LastName
+, Upper(City || " " || Country)
+From Customers
+
+# 2. Create a new employee user id by combining the first 4 letters of the employee’s first name with the first 2 letters of the employee’s last name. 
+# Make the new field lower case and pull each individual step to show your work.
+
+Select FirstName
+, LastName
+, lower(substr(FirstName, 1, 4) || substr(LastName, 1, 2)) AS new_employee_id
+From employees
+
+# 3. Show a list of employees who have worked for the company for 15 or more years using the current date function. Sort by lastname ascending.
+
+Select EmployeeId
+, FirstName
+, LastName
+, HireDate
+, Date("now") - HireDate AS worktime
+, case Date("now") - HireDate
+    When Date("now") - HireDate >= 15 Then LastName
+    Else Null
+END AS A
+From employees
+Order by LastName ASC
+
+#4. Profiling the Customers table
+
+select Fax, Address, Phone, FirstName, Company, PostalCode
+from Customers
+Where PostalCode IS NULL
+
+# 5. Find the cities with the most customers and rank in descending order.
+
+Select City
+, count(*) as orders
+From customers
+Group by city
+Order by orders DESC
