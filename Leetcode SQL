@@ -40,7 +40,8 @@ set
         else "m"
         end;
         
-# !!!DELETE 196. Delete Duplicate Emails
+# !!!DELETE 196. Delete Duplicate Emails:  delete all the duplicate emails, keeping only one unique email with the smallest id.
+# Use self join
 
 DELETE a from Person a
     , Person b
