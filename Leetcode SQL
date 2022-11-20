@@ -41,7 +41,7 @@ set
         end;
         
 # !!!DELETE 196. Delete Duplicate Emails:  delete all the duplicate emails, keeping only one unique email with the smallest id.
-# Use self join
+## Use self join
 
 DELETE a from Person a
     , Person b
@@ -50,3 +50,33 @@ Where a.email = b.email AND a.id > b.id
 DELETE FROM Person WHERE Id NOT IN 
 (SELECT * FROM(
     SELECT MIN(Id) FROM Person GROUP BY Email) as p);
+    
+    
+# 1667. Fix Names in a Table: Write an SQL query to fix the names so that only the first character is uppercase and the rest are lowercase.
+## Pay attention: In Mysql, concatenate use function concat(), while in sqlite, use ||, in SQL server, use "+"
+
+Select user_id
+, concat(Upper(substr(name, 1, 1)), Lower(substr(name, 2))) AS name
+From Users
+Order by user_id ASC
+
+
+# !!!1484. Group Sold Products By The Date: Write an SQL query to find for each date the number of different products sold and their names.
+# The sold products names for each date should be sorted lexicographically.
+# Return the result table ordered by sell_date.
+
+## Points: 1. Use DISTINCT  2. use Group_concat to concatenate the values from multiple rows into a single string and returns it.
+## Syntax:
+GROUP_CONCAT(DISTINCT expression
+    ORDER BY expression
+    SEPARATOR sep);
+
+## code
+Select sell_date
+, count(DISTINCT product) AS num_sold
+, Group_concat(DISTINCT product 
+        order by product ASC
+        separator ',' ) as products
+From Activities
+Group by sell_date
+Order by sell_date
