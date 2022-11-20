@@ -80,3 +80,84 @@ Select sell_date
 From Activities
 Group by sell_date
 Order by sell_date
+
+
+# !!!Wildcard
+# From W3School
+Symbol	Description	                                                Example
+%	    Represents zero or more characters	                        bl% finds bl, black, blue, and blob
+_	    Represents a single character	                            h_t finds hot, hat, and hit
+[]	    Represents any single character within the brackets	        h[oa]t finds hot and hat, but not hit
+^	    Represents any character not in the brackets	            h[^oa]t finds hit, but not hot and hat
+-	    Represents any single character within the specified range	c[a-b]t finds cat and cbt
+
+LIKE  Operator	                Description
+WHERE CustomerName LIKE 'a%'	Finds any values that starts with "a"
+WHERE CustomerName LIKE '%a'	Finds any values that ends with "a"
+WHERE CustomerName LIKE '%or%'	Finds any values that have "or" in any position
+WHERE CustomerName LIKE '_r%'	Finds any values that have "r" in the second position
+WHERE CustomerName LIKE 'a__%'	Finds any values that starts with "a" and are at least 3 characters in length
+WHERE ContactName LIKE 'a%o'	Finds any values that starts with "a" and ends with "o"
+
+### Solution1:
+select patient_id, patient_name, conditions
+From Patients
+Where conditions LIKE 'DIAB1%' OR conditions LIKE '% DIAB1%'
+
+### Solution2: Use REGEXP
+SELECT * FROM patients WHERE conditions REGEXP '\\bDIAB1'
+
+
+# !!!1965. Employees With Missing Information:  
+            report the IDs of all the employees with missing information. The information of an employee is missing if:
+            The employee's name is missing, or
+            The employee's salary is missing.
+            Return the result table ordered by employee_id in ascending order.
+
+### Solution1: Use LEFT JOIN and RIGHT JOIN to realize full join in Mysql
+### Pay attention: 1.If column names of two tables are identical, use the USING clause instead of the ON clause
+
+Select employee_id
+From (select * from Employees E left join Salaries S using(employee_id)
+    UNION
+    select * from Employees E right join Salaries S using(employee_id)) AS A
+Where A.name IS NULL or A.salary IS NULL
+Order by employee_id ASC
+
+### Solution2 : Use NOT IN 
+
+SELECT employee_id
+FROM Employees
+WHERE employee_id NOT IN (SELECT employee_id
+                          FROM Salaries)
+UNION
+SELECT employee_id
+FROM Salaries
+WHERE employee_id NOT IN (SELECT employee_id
+                          FROM Employees)
+ORDER BY employee_id;
+
+# !!!1795. Rearrange Products Table
+### Solution1: In Mysql, use union
+
+SELECT product_id, 'store1' AS store, store1 AS price 
+FROM Products 
+WHERE store1 IS NOT NULL
+UNION 
+SELECT product_id, 'store2' AS store, store2 AS price 
+FROM Products 
+WHERE store2 IS NOT NULL
+UNION 
+SELECT product_id, 'store3' AS store, store3 AS price 
+FROM Products 
+WHERE store3 IS NOT NULL
+
+### Solution2: In MS Sql Server, use UNIPIVOT
+
+SELECT product_id , store , price
+FROM Products
+UNPIVOT
+(
+price
+FOR store in (store1, store2, store3)
+) AS Products_Unpivoted
