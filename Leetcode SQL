@@ -241,23 +241,66 @@ WHERE transaction_id IS NULL
 GROUP BY customer_id
 
 
+# 1148. Article Views I: Write an SQL query to find all the authors that viewed at least one of their own articles.
+
+SELECT DISTINCT(author_id) AS id 
+FROM Views WHERE author_id = viewer_id 
+ORDER BY id ASC;
+
+#在使用 left join 时，on 和 where 条件的区别如下：
+#1、on 条件是在生成临时表时使用的条件，它不管 on 中的条件是否为真，都会返回左边表中的记录。
+#2、where 条件是在临时表生成好后，再对临时表进行过滤的条件。这时已经没有 left join 的含义（必须返回左边表的记录）了，条件不为真的就全部过滤掉。
+
+# !!!197. Rising Temperature: Write an SQL query to find all dates' Id with higher temperatures compared to its previous dates (yesterday).
+Weather Table
++----+------------+-------------+
+| id | recordDate | temperature |
++----+------------+-------------+
+| 1  | 2015-01-01 | 10          |
+| 2  | 2015-01-02 | 25          |
+| 3  | 2015-01-03 | 20          |
+| 4  | 2015-01-04 | 30          |
++----+------------+-------------+
+
+## The point is using self join and datediff() or subdate() function. Before I know the two function, I even tried to insert and update and then compare, but it doesn't work. I don't know where is wrong
+
+### Solution1
+SELECT w2.id from Weather w1,Weather w2
+WHERE datediff(w2.recordDate, w1.recordDate) = 1 AND w2.temperature > w1.temperature;
+// where datediff -> date difference b/w two dates
+
+### Solution2
+SELECT w2.id from Weather w1, Weather w2
+WHERE w2.temperature > w1.temperature AND
+subdate(w2.recordDate, 1) = w1.recordDate;
+// where subdate -> subtract date 
 
 
+# 607. Sales Person
+
+Select name
+From SalesPerson
+Where sales_id not in (
+    Select O.sales_id
+    from Orders O left join Company C
+    On O.com_id = C.com_id
+    Where C.name = "RED"
+)
 
 
+# !!!1141. User Activity for the Past 30 Days I: Write an SQL query to find the daily active user count for a period of 30 days ending 2019-07-27 inclusively. 
+# A user was active on someday if they made at least one activity on that day.
+## Use datediff() and group by 
 
+Select activity_date as day
+, count(DISTINCT user_id) as active_users
+From Activity
+Where (activity_date between '2019-06-28' AND '2019-07-27')  
+Group by activity_date
 
-
-
-
-
-
-
-
-
-
-
-
-
+SELECT activity_date as day, COUNT(DISTINCT user_id) as active_users
+FROM Activity
+WHERE datediff('2019-07-27',activity_date)<30 
+GROUP BY activity_date
 
 
