@@ -221,6 +221,41 @@ select MAX(Salary) As SecondHighestSalary
 from Employee
 Where Salary < (select max(Salary) From Employee)
 
+# !!!586. Customer Placing the Largest Number of Orders: Write an SQL query to find the customer_number for the customer who has placed the largest number of orders.
++--------------+-----------------+
+| order_number | customer_number |
++--------------+-----------------+
+| 1            | 1               |
+| 2            | 2               |
+| 3            | 3               |
+| 4            | 3               |
++--------------+-----------------+
+## How to get the max(sum(order_number))?
+### Solution1: use limit
+
+Select customer_number
+From Orders
+Group by customer_number
+Order by COUNT(*) DESC
+LIMIT 1
+
+### Solution2: 
+select customer_number from orders
+group by customer_number
+having count(order_number) = 
+(
+select max(count) from 
+    ( 
+     select count(order_number) as count from orders group by customer_number
+     ) sub1
+)
+
+### Solution3: use ALL()
+select customer_number from orders 
+group by customer_number
+having count(customer_number) >= all 
+(select count(customer_number) from orders group by customer_number)
+
 
 # 1581. Customer Who Visited but Did Not Make Any Transactions
 ## My main problems now is that while writing, my thinking is not very clear; and also sometimes I don't know how to write snytax
@@ -303,4 +338,62 @@ FROM Activity
 WHERE datediff('2019-07-27',activity_date)<30 
 GROUP BY activity_date
 
+# !!!511. Game Play Analysis I: Write an SQL query to report the first login date for each player.
++-----------+-----------+------------+--------------+
+| player_id | device_id | event_date | games_played |
++-----------+-----------+------------+--------------+
+| 1         | 2         | 2016-03-01 | 5            |
+| 1         | 2         | 2016-05-02 | 6            |
+| 2         | 3         | 2017-06-25 | 1            |
+| 3         | 1         | 2016-03-02 | 0            |
+| 3         | 4         | 2018-07-03 | 5            |
++-----------+-----------+------------+--------------+
 
+## Window function: RANK(), DENSE_RANK(), or ROW_NUMBER()
+### Solution1: use ROW_NUMBER() OVER(PARTITION BY column1 ORDER BY column2) as new_index, the result shows the rank in a group; then use condition new_index = 1 to query the first record of a group
+
+select player_id, event_date as first_login
+from (select player_id, event_date
+, ROW_NUMBER() over(partition by player_id order by event_date) as new_index
+from Activity) t
+where t.new_index = 1
+
+### Solution2: use FIRST_VALUE() window function
+
+SELECT DISTINCT
+  A.player_id,
+  FIRST_VALUE(A.event_date) OVER (
+    PARTITION BY
+      A.player_id
+    ORDER BY
+      A.event_date
+  ) AS first_login
+FROM
+  Activity A;
+
+### Solution3: min() can work...
+select player_id, 
+min(event_date) as first_login
+From Activity
+Group by player_id
+
+#1890. The Latest Login in 2020: Write an SQL query to report the latest login for all users in the year 2020. Do not include the users who did not login in 2020.
+
+### Solution1: use max() and year()
+Select user_id, 
+max(time_stamp) as last_stamp
+from Logins
+where year(time_stamp) = 2020 
+Group by user_id
+
+### Solution2: use window function LAST_VALUE()
+Select DISTINCT user_id, 
+LAST_VALUE(time_stamp) OVER(
+    PARTITION BY user_id
+    ORDER BY time_stamp ASC
+    RANGE BETWEEN 
+            UNBOUNDED PRECEDING AND 
+            UNBOUNDED FOLLOWING
+) as last_stamp
+from Logins
+Where year(time_stamp) = 2020
