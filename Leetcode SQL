@@ -50,7 +50,13 @@ Where a.email = b.email AND a.id > b.id
 DELETE FROM Person WHERE Id NOT IN 
 (SELECT * FROM(
     SELECT MIN(Id) FROM Person GROUP BY Email) as p);
-    
+ 
+# !!!182. Duplicate Emails
+
+Select email
+from Person
+Group by email
+HAVING COUNT(email)>1 
     
 # 1667. Fix Names in a Table: Write an SQL query to fix the names so that only the first character is uppercase and the rest are lowercase.
 ## Pay attention: In Mysql, concatenate use function concat(), while in sqlite, use ||, in SQL server, use "+"
@@ -199,11 +205,41 @@ Select id
 From Tree
 Order by id ASC
 
+1393. Capital Gain/Loss: Write an SQL query to report the Capital gain/loss for each stock.
++---------------+-----------+---------------+--------+
+| stock_name    | operation | operation_day | price  |
++---------------+-----------+---------------+--------+
+| Leetcode      | Buy       | 1             | 1000   |
+| Corona Masks  | Buy       | 2             | 10     |
+| Leetcode      | Sell      | 5             | 9000   |
+| Handbags      | Buy       | 17            | 30000  |
+| Corona Masks  | Sell      | 3             | 1010   |
+| Corona Masks  | Buy       | 4             | 1000   |
+| Corona Masks  | Sell      | 5             | 500    |
+| Corona Masks  | Buy       | 6             | 1000   |
+| Handbags      | Sell      | 29            | 7000   |
+| Corona Masks  | Sell      | 10            | 10000  |
++---------------+-----------+---------------+--------+
+
+### Solution1: use if function, always forget this function...
+
+SELECT stock_name, SUM(IF(operation = "Buy", price*-1, price*1) ) AS capital_gain_loss
+FROM Stocks
+GROUP BY Stock_name
+
+### Solution2: use case when
+Select stock_name
+, sum((case operation
+    when 'Buy' then -1
+    else 1
+    END) * price) as capital_gain_loss
+From Stocks
+Group by Stock_name
 
 # !!!176. Second Highest Salary: Write an SQL query to report the second highest salary from the Employee table. 
 # If there is no second highest salary, the query should report null
 
-### Solution1 : To get the second largest salary, first use DISTINCTto avoid duplicate value, then use LIMIT OFFSET syntax
+### Solution1 : To get the second largest salary, first use DISTINCT to avoid duplicate value, then use LIMIT OFFSET syntax
 ### 当limit后面跟两个参数的时候，第一个数表示要跳过的数量，后一位表示要取的数量;
 ### 当limit后面跟一个参数的时候，该参数表示要取的数据的数量;
 ### 当limit和offset组合使用的时候，limit后面只能有一个参数，表示要取的的数量,offset表示要跳过的数量。
@@ -397,3 +433,24 @@ LAST_VALUE(time_stamp) OVER(
 ) as last_stamp
 from Logins
 Where year(time_stamp) = 2020
+
+# 1407. Top Travellers: Write an SQL query to report the distance traveled by each user.
+
+## ifnull can change null value into 0
+Select u.name, ifnull(sum(r.distance), 0) as travelled_distance
+From Users u left join Rides r
+on u.id = r.user_id
+group by r.user_id
+order by travelled_distance DESC, name ASC
+
+# 1158. Market Analysis I: Write an SQL query to find for each user, the join date and the number of orders they made as a buyer in 2019.
+
+## 只用对应buyer_id
+SELECT u.user_id AS buyer_id, join_date, COUNT(order_date) AS orders_in_2019 
+FROM Users as u
+LEFT JOIN Orders as o
+ON u.user_id = o.buyer_id
+AND YEAR(order_date) = '2019'
+GROUP BY u.user_id
+
+
