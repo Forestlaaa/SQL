@@ -434,7 +434,7 @@ LAST_VALUE(time_stamp) OVER(
 from Logins
 Where year(time_stamp) = 2020
 
-# 1407. Top Travellers: Write an SQL query to report the distance traveled by each user.
+# !1407. Top Travellers: Write an SQL query to report the distance traveled by each user.
 
 ## ifnull can change null value into 0
 Select u.name, ifnull(sum(r.distance), 0) as travelled_distance
@@ -443,7 +443,7 @@ on u.id = r.user_id
 group by r.user_id
 order by travelled_distance DESC, name ASC
 
-# 1158. Market Analysis I: Write an SQL query to find for each user, the join date and the number of orders they made as a buyer in 2019.
+# !1158. Market Analysis I: Write an SQL query to find for each user, the join date and the number of orders they made as a buyer in 2019.
 
 ## 只用对应buyer_id
 SELECT u.user_id AS buyer_id, join_date, COUNT(order_date) AS orders_in_2019 
@@ -454,3 +454,32 @@ AND YEAR(order_date) = '2019'
 GROUP BY u.user_id
 
 
+# !1050. Actors and Directors Who Cooperated At Least Three Times
+## Study the from clause in this chunk of code below
+
+select actor_id, director_id 
+from(
+select actor_id,director_id, 
+count(timestamp) as cooperated 
+from ActorDirector 
+group by actor_id,director_id) 
+table1
+where cooperated>=3;
+
+Select actor_id, director_id
+from ActorDirector
+Group by actor_id, director_id
+Having count(timestamp) >= 3
+
+
+#1084. Sales Analysis III: Write an SQL query that reports the products that were only sold in the first quarter of 2019. That is, between 2019-01-01 and 2019-03-31 inclusive.
+
+## Use group by to get rid of product_id that appear several times
+Select S.product_id, P.product_name
+From Sales S left join Product P
+on S.product_id = P.product_id
+Group by S.product_id
+Having S.product_id not in(
+    select product_id
+    from Sales
+    Where sale_date not between '2019-01-01' AND '2019-03-31')
