@@ -1,2 +1,2 @@
 # SQL
-For SQL UC Davis 
+For SQL UC Davis & Leetcode
