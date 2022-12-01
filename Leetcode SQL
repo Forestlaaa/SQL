@@ -483,3 +483,71 @@ Having S.product_id not in(
     select product_id
     from Sales
     Where sale_date not between '2019-01-01' AND '2019-03-31')
+
+# !!!(Medium)1699. Number of Calls Between Two Persons: Write an SQL query to report the number of calls and the total call duration between each pair of distinct persons (person1, person2) where person1 < person2.
+## Treat (from_id, to_id) as a group, then use LEAST() return the small id from pairs, GREATEST() return the larger id from pairs()
+## Instead of GROUP BY (from_id + to_id), which could not take from_id < to_id into consideration
+## Use LEAST and GREATEST will not miss any condition
+
+### Correct answer
+SELECT LEAST(from_id, to_id) as person1,
+GREATEST(from_id, to_id) as person2,
+COUNT(*) as call_count,
+SUM(duration) as total_duration
+FROM Calls
+GROUP BY person1, person2
+
+### Another solution
+SELECT
+CASE WHEN from_id > to_id THEN to_id ELSE from_id END AS person1,
+CASE WHEN to_id < from_id THEN from_id ELSE to_id END AS person2,
+COUNT(duration) AS call_count,
+SUM(duration) AS total_duration
+FROM Calls
+GROUP BY 1,2
+
+### My wrong answer
+Select DISTINCT from_id as person1, 
+to_id as person2,
+count(duration) as call_count,
+sum(duration) as total_duration
+From Calls
+group by (from_id + to_id)
+
+
+# !!!(Medium)1709. Biggest Window Between Visits :Assume today's date is '2021-1-1'.
+# Write an SQL query that will, for each user_id, find out the largest window of days between each visit and the one right after it (or today if you are considering the last visit).
+## Point: 1. How to subtract the current line with the next line: use LEAD(return_value, offset[, default]) OVER([PARTITION BY partitiion_expression] ORDER BY sort_expression[ASC|DESC])
+          2. How to fill the null value with certain value: use ifnull(column, value). When the value is a date, remember to write date ahead
+
+### Solution1
+select user_id, max(datediff(nxt_visit_date, visit_date)) as biggest_window
+from (select user_id
+         , visit_date
+         , ifnull(lead(visit_date) over(partition by user_id order by visit_date), date'2021-01-01') as nxt_visit_date
+    from uservisits) T1
+group by user_id
+Order by user_id
+
+### Solution2
+## point: use with as, 定义一个SQL片断后，该SQL片断可以被整个SQL语句所用到。有的时候，with as是为了提高SQL语句的可读性，减少嵌套冗余;
+## 增加了sql的易读性，如果构造了多个子查询，结构会更清晰, 一次分析，多次使用
+
+#相当于建立了一张临时虚拟表
+WITH cte AS
+(SELECT user_id, visit_date,
+RANK() OVER(PARTITION BY user_id ORDER BY visit_date) AS r
+FROM UserVisits)
+
+SELECT t1.user_id, 
+MAX(DATEDIFF(IFNULL(t2.visit_date,'2021-01-01'), t1.visit_date)) AS biggest_window
+FROM cte t1
+LEFT JOIN cte t2
+ON t1.r = t2.r-1 AND t1.user_id = t2.user_id
+GROUP BY 1
+
+
+
+
+
+
