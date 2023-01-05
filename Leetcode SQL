@@ -600,4 +600,79 @@ ON P.product_id = U.product_id AND (U.purchase_date between P.start_date AND P.e
 group by P.product_id
 
 
+### A solution I am not familiar with: I tend to write select altogether
+SELECT name warehouse_name, SUM(units * size) volume  //Here there is not duplicate name with "size"
+FROM Warehouse W
+LEFT JOIN
+(
+    SELECT product_id, Width * Length * Height size
+    FROM Products
+) ps
+ON W.product_id = ps.product_id
+GROUP BY name
+
+
+# !!!1445. Apples & Oranges: Write an SQL query to report the difference between the number of apples and oranges sold each day.
+Sales table:
++------------+------------+-------------+
+| sale_date  | fruit      | sold_num    |
++------------+------------+-------------+
+| 2020-05-01 | apples     | 10          |
+| 2020-05-01 | oranges    | 8           |
+| 2020-05-02 | apples     | 15          |
+| 2020-05-02 | oranges    | 15          |
+| 2020-05-03 | apples     | 20          |
+| 2020-05-03 | oranges    | 0           |
+| 2020-05-04 | apples     | 15          |
+| 2020-05-04 | oranges    | 16          |
++------------+------------+-------------+
+## 又是上一行减下一行类似的问题
+### GROUP BY sale_date, apples - oranges, how to realize? 不要总想到上一行减下一行，那样会复杂很多，实际上用case when 把oranges sold_num换符号，再用SUM()（SUM()是加一列的总））更简单
+
+SELECT sale_date,
+SUM(CASE WHEN fruit = 'apples' THEN sold_num ELSE -sold_num END) diff  //其实拆开case when 应该会新增一列10，-8，15，-15，20，0，15，-16
+FROM Sales
+GROUP BY sale_date
+
+
+# 1193. Monthly Transactions I: Write an SQL query to find for each month and country, the number of transactions and their total amount, the number of approved transactions and their total amount.
+Transactions table:
++------+---------+----------+--------+------------+
+| id   | country | state    | amount | trans_date |
++------+---------+----------+--------+------------+
+| 121  | US      | approved | 1000   | 2018-12-18 |
+| 122  | US      | declined | 2000   | 2018-12-19 |
+| 123  | US      | approved | 2000   | 2019-01-01 |
+| 124  | DE      | approved | 2000   | 2019-01-07 |
++------+---------+----------+--------+------------+
+## Points: 
+1.How to extract year_month from trans_date? 
+Two method: 
+`Use DATE_FORMAT(trans_date, '%Y-%m')
+`Use LEFT(str, length) or SUBSTRING(str, pos,[length])
+2. I made it more complicated by create a new temp table named temp and use CASE WHEN to create a new column named var to turn approved into 1 and declined into 0, 
+but it could be simplified...
+
+### Original answer
+SELECT month, country, COUNT(month) AS trans_count, SUM(var) AS approved_count, SUM(amount) AS trans_total_amount, SUM(var*amount) as approved_total_amount
+FROM (SELECT DATE_FORMAT(trans_date, '%Y-%m') AS month, country, state, amount, trans_date,
+(CASE WHEN state = 'approved' THEN 1 ELSE 0 END) as var
+FROM Transactions) temp
+GROUP BY month, country
+
+### Improved answer
+SELECT 
+LEFT(trans_date, 7) AS month, country, 
+COUNT(id) AS trans_count, 
+SUM(state = 'approved') AS approved_count,   //I made a wrong snytax here, I wrote SUM(state if state = 'approved')
+SUM(amount) AS trans_total_amount, 
+SUM(CASE 
+    WHEN state = 'approved' THEN amount 
+    ELSE 0 
+    END) AS approved_total_amount
+FROM Transactions
+GROUP BY month, country
+
+
+
 
