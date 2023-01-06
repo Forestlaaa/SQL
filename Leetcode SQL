@@ -1,7 +1,7 @@
 # This file is for leetcode SQL, mySQL
 # Mostly the upper part code is written by myself, the lower part code is the official solution.
 
-# 183. Customers Who Never Order
+✔# 183. Customers Who Never Order 
 
 Select c.name AS customers
 From Customers c left join Orders o
@@ -15,7 +15,7 @@ where customers.id not in
     select customerid from orders  # !Never write such things before in SQLite
 );
 
-# 1873. Calculate Special Bonus
+✔# 1873. Calculate Special Bonus
 # Write an SQL query to calculate the bonus of each employee. The bonus of an employee is 100% of their salary if the ID of the employee is an odd number 
 # and the employee name does not start with the character 'M'. The bonus of an employee is 0 otherwise.
 # Return the result table ordered by employee_id.
@@ -28,11 +28,17 @@ END bonus
 From Employees
 Order by employee_id ASC
 
+
 select employee_id , salary * ( employee_id%2 ) * ( name not like 'M%') as bonus  # !Use wildcard 
 from employees
 order by employee_id;
 
 # update: 627. Swap Salary
+## Clauses: 
+    UPDATE table_name
+    SET column1 = value1, column2 = value2, ...
+    WHERE condition;
+    
 UPDATE Salary 
 set
     sex = case sex
@@ -40,15 +46,15 @@ set
         else "m"
         end;
         
-# !!!DELETE 196. Delete Duplicate Emails:  delete all the duplicate emails, keeping only one unique email with the smallest id.
-## Use self join
+⭐# !!!DELETE 196. Delete Duplicate Emails:  delete all the duplicate emails, keeping only one unique email with the smallest id.
+## 重复，同一列内的操作：Use self join
 
 DELETE a from Person a
     , Person b
 Where a.email = b.email AND a.id > b.id
 
-DELETE FROM Person WHERE Id NOT IN 
-(SELECT * FROM(
+DELETE FROM Person WHERE Id NOT IN   
+(SELECT * FROM(                     //通过group by留下最小的
     SELECT MIN(Id) FROM Person GROUP BY Email) as p);
  
 # !!!182. Duplicate Emails
