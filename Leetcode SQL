@@ -874,9 +874,203 @@ where dr = 1
 order by student_id;
 
 
+# !!!1398. Customers Who Bought Products A and B but Not C: Write an SQL query to report the customer_id and customer_name of customers who bought products "A", "B" but did not buy the product "C" since we want to recommend them to purchase this product.
+Customers table:
++-------------+---------------+
+| customer_id | customer_name |
++-------------+---------------+
+| 1           | Daniel        |
+| 2           | Diana         |
+| 3           | Elizabeth     |
+| 4           | Jhon          |
++-------------+---------------+
+Orders table:
++------------+--------------+---------------+
+| order_id   | customer_id  | product_name  |
++------------+--------------+---------------+
+| 10         |     1        |     A         |
+| 20         |     1        |     B         |
+| 30         |     1        |     D         |
+| 40         |     1        |     C         |
+| 50         |     2        |     A         |
+| 60         |     3        |     A         |
+| 70         |     3        |     B         |
+| 80         |     3        |     D         |
+| 90         |     4        |     C         |
++------------+--------------+---------------+
+Output: 
++-------------+---------------+
+| customer_id | customer_name |
++-------------+---------------+
+| 3           | Elizabeth     |
++-------------+---------------+
+
+###
+SELECT DISTINCT o.customer_id, c.customer_name
+FROM Orders o LEFT JOIN Customers c
+ON o.customer_id = c.customer_id
+WHERE o.customer_id in
+(SELECT DISTINCT customer_id
+FROM Orders
+WHERE 
+customer_id in (SELECT customer_id FROM Orders WHERE product_name = 'A')
+AND 
+customer_id in (SELECT customer_id FROM Orders WHERE product_name = 'B')
+AND
+customer_id not in (SELECT customer_id FROM Orders WHERE product_name = 'C'))
 
 
+⭐# !!!1440. Evaluate Boolean Expression: Write an SQL query to evaluate the boolean expressions in Expressions table.
+Variables table:
++------+-------+
+| name | value |
++------+-------+
+| x    | 66    |
+| y    | 77    |
++------+-------+
+Expressions table:
++--------------+----------+---------------+
+| left_operand | operator | right_operand |
++--------------+----------+---------------+
+| x            | >        | y             |
+| x            | <        | y             |
+| x            | =        | y             |
+| y            | >        | x             |
+| y            | <        | x             |
+| x            | =        | x             |
++--------------+----------+---------------+
+Output: 
++--------------+----------+---------------+-------+
+| left_operand | operator | right_operand | value |
++--------------+----------+---------------+-------+
+| x            | >        | y             | false |
+| x            | <        | y             | true  |
+| x            | =        | y             | false |
+| y            | >        | x             | true  |
+| y            | <        | x             | false |
+| x            | =        | x             | true  |
++--------------+----------+---------------+-------+
+## Point: 1. At first I don't know how to Express the operator into math operators, I thought I need to change the type from enum to something else, but actually...
+## 2. It is also noticable that here using two LEFT JOIN。
+## 关于多个LEFT JOIN 如何执行这个问题，eg：select * from a left join b on a.abid = b.baid left join c on c.cbid = b.bcid 
+## 顺序是先a,b组合成一个虚拟表，然后虚拟表再和C表关联
 
+### Solution:
+SELECT a.left_operand
+, a.operator
+, a.right_operand
+, CASE 
+    WHEN b.value > c.value AND a.operator = '>' THEN 'true'
+    WHEN b.value < c.value AND a.operator = '<' THEN 'true'
+    WHEN b.value = c.value AND a.operator = '=' THEN 'true'
+    ELSE 'false'
+END value
+FROM Expressions a
+LEFT JOIN Variables b on a.left_operand = b.name
+LEFT JOIN Variables c on a.right_operand = c.name
+
+
+# !!!1264. Page Recommendations: Write an SQL query to recommend pages to the user with user_id = 1 using the pages that your friends liked. 
+# It should not recommend pages you already liked.
+Friendship table:
++----------+----------+
+| user1_id | user2_id |
++----------+----------+
+| 1        | 2        |
+| 1        | 3        |
+| 1        | 4        |
+| 2        | 3        |
+| 2        | 4        |
+| 2        | 5        |
+| 6        | 1        |
++----------+----------+
+Likes table:
++---------+---------+
+| user_id | page_id |
++---------+---------+
+| 1       | 88      |
+| 2       | 23      |
+| 3       | 24      |
+| 4       | 56      |
+| 5       | 11      |
+| 6       | 33      |
+| 2       | 77      |
+| 3       | 77      |
+| 6       | 88      |
++---------+---------+
+Output: 
++------------------+
+| recommended_page |
++------------------+
+| 23               |
+| 24               |
+| 56               |
+| 33               |
+| 77               |
++------------------+
+## Points: 1.一开始不知道怎么把1的朋友弄出来，后来发现就用CASE WHEN就行...还想了半天怎么左连接右链接啥的
+
+### My solution:
+SELECT L.page_id as recommended_page
+FROM Likes L LEFT JOIN
+(SELECT 
+CASE WHEN user1_id = 1 THEN user2_id
+WHEN user2_id = 1 THEN user1_id
+END AS user_id) t        #1的朋友
+ON L.user_id = t.user_id
+WHERE Lpage_id NOT IN(SELECT page_id FROM Likes WHERE user_id = 1)
+
+
+# !!!570. Managers with at Least 5 Direct Reports: Write an SQL query to report the managers with at least five direct reports.
+Input: 
+Employee table:
++-----+-------+------------+-----------+
+| id  | name  | department | managerId |
++-----+-------+------------+-----------+
+| 101 | John  | A          | None      |
+| 102 | Dan   | A          | 101       |
+| 103 | James | A          | 101       |
+| 104 | Amy   | A          | 101       |
+| 105 | Anne  | A          | 101       |
+| 106 | Ron   | B          | 101       |
++-----+-------+------------+-----------+
+Output: 
++------+
+| name |
++------+
+| John |
++------+
+## Points: 1.不太熟悉用JOIN做，搞不清是怎么join的。可以看到solution 1 和solution 2其实大差不差，主要还是solution 3
+### Solution 1:
+SELECT
+    Name
+FROM
+    Employee AS t1 JOIN
+    (SELECT
+        ManagerId
+    FROM
+        Employee
+    GROUP BY ManagerId
+    HAVING COUNT(ManagerId) >= 5) AS t2
+    ON t1.Id = t2.ManagerId
+
+### Solution 2(My solution):
+SELECT name 
+FROM Employee
+WHERE id in
+(SELECT managerId
+FROM Employee
+GROUP BY managerId
+HAVING COUNT(id) >= 5)
+
+### Solution 3: FROM Employee e1 JOIN Employee e2 on e1.ManagerId = e2.Id,要知道这个join的table长啥样
+select e2.name
+from employee e1
+join employee e2
+on e1.ManagerId=e2.Id
+group by e2.name
+having count(*)>=5
+    
 
 
 
