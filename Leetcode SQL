@@ -641,7 +641,7 @@ FROM Sales
 GROUP BY sale_date
 
 
-# 1193. Monthly Transactions I: Write an SQL query to find for each month and country, the number of transactions and their total amount, the number of approved transactions and their total amount.
+# !!!1193. Monthly Transactions I: Write an SQL query to find for each month and country, the number of transactions and their total amount, the number of approved transactions and their total amount.
 Transactions table:
 +------+---------+----------+--------+------------+
 | id   | country | state    | amount | trans_date |
@@ -679,7 +679,8 @@ SUM(CASE
 FROM Transactions
 GROUP BY month, country
 
-#
+
+#! Write an SQL query to find the percentage of the users registered in each contest rounded to two decimals.
 Users table:
 +---------+-----------+
 | user_id | user_name |
@@ -705,10 +706,184 @@ Register table:
 | 207        | 2       |
 | 210        | 7       |
 +------------+---------+
+###
 SELECT contest_id,
 ROUND(count(user_id)/(SELECT count(*) FROM Users)*100,2) as percentage  #这中间可以这样弄(SELECT count(*) FROM Users)*100
 FROM Register
 GROUP BY contest_id
 ORDER BY percentage DESC, contest_id;
+
+
+# 1173. Immediate Food Delivery I:
+# If the customer's preferred delivery date is the same as the order date, then the order is called immediate; otherwise, it is called scheduled.
+Input: 
+Delivery table:
++-------------+-------------+------------+-----------------------------+
+| delivery_id | customer_id | order_date | customer_pref_delivery_date |
++-------------+-------------+------------+-----------------------------+
+| 1           | 1           | 2019-08-01 | 2019-08-02                  |
+| 2           | 5           | 2019-08-02 | 2019-08-02                  |
+| 3           | 1           | 2019-08-11 | 2019-08-11                  |
+| 4           | 3           | 2019-08-24 | 2019-08-26                  |
+| 5           | 4           | 2019-08-21 | 2019-08-22                  |
+| 6           | 2           | 2019-08-11 | 2019-08-13                  |
++-------------+-------------+------------+-----------------------------+
+Output: 
++----------------------+
+| immediate_percentage |
++----------------------+
+| 33.33                |
++----------------------+
+
+### My answer: Complicated at how to get the number of immediate order. Actually just use sum(order_date = customer_pref_delivery_date). 
+SELECT ROUND((SELECT count(delivery_id)
+FROM Delivery
+Where datediff(order_date, customer_pref_delivery_date) = 0)/count(delivery_id)*100, 2) AS immediate_percentage  #Here count(delivery_id) could just be written as count(*)
+FROM Delivery
+
+select round(100 * sum(order_date = customer_pref_delivery_date) / count(*), 2) as immediate_percentage from Delivery;
+
+# !1211. Queries Quality and Percentage: AVG
+Queries table:
++------------+-------------------+----------+--------+
+| query_name | result            | position | rating |
++------------+-------------------+----------+--------+
+| Dog        | Golden Retriever  | 1        | 5      |
+| Dog        | German Shepherd   | 2        | 5      |
+| Dog        | Mule              | 200      | 1      |
+| Cat        | Shirazi           | 5        | 2      |
+| Cat        | Siamese           | 3        | 3      |
+| Cat        | Sphynx            | 7        | 4      |
++------------+-------------------+----------+--------+
+Output: 
++------------+---------+-----------------------+
+| query_name | quality | poor_query_percentage |
++------------+---------+-----------------------+
+| Dog        | 2.50    | 33.33                 |
+| Cat        | 0.66    | 33.33                 |
++------------+---------+-----------------------+
+
+### My Answer: 
+SELECT query_name
+, ROUND(SUM(rating/position)/COUNT(query_name), 2) AS quality      #Use AVG
+, ROUND(SUM(rating<3)/count(*)*100, 2) AS poor_query_percentage    #Use AVG
+FROM Queries
+GROUP BY query_name
+
+### Better Answer:
+SELECT 
+	query_name,
+	ROUND(AVG(rating / position), 2) AS quality,
+	ROUND(AVG(rating < 3) * 100, 2) AS poor_query_percentage 
+FROM 
+	Queries
+GROUP BY 
+	query_name
+
+
+
+# 日期条件
+## Point: 1. 一定要加'',或者""; 2.还可以用where year(sale_date)=2020 OR date_format(sale_date, '%Y') = '2020' OR LEFT(sale_date, 4) = 2020
+SELECT S.seller_name AS seller_name
+FROM Seller S LEFT JOIN Orders O 
+ON O.seller_id = S.seller_id
+WHERE S.seller_id NOT IN (SELECT DISTINCT seller_id FROM Orders Where sale_date > '2020-01-01')
+ORDER BY S.seller_name ASC
+
+## This method ad customer_id as a condition to filter seller_id
+select seller_name
+from seller s
+left join (select seller_id, customer_id  #!!
+          from orders
+          where year(sale_date)=2020) o
+using(seller_id)
+where o.customer_id is null  #!!
+order by 1
+
+# 619. Biggest Single Number
+Input: 
+MyNumbers table:
++-----+
+| num |
++-----+
+| 8   |
+| 8   |
+| 3   |
+| 3   |
+| 1   |
+| 4   |
+| 5   |
+| 6   |
++-----+
+Output: 
++-----+
+| num |
++-----+
+| 6   |
++-----+
+### My answer: Use MAX()，可以直接HAVING COUNT(num)=1，不用not in
+SELECT MAX(num) AS num FROM MyNumbers
+WHERE num NOT IN (SELECT DISTINCT num FROM MyNumbers
+GROUP BY num
+HAVING count(num)>1)
+
+### More concise solution:
+SELECT
+    num
+FROM
+    my_numbers
+GROUP BY num
+HAVING COUNT(num) = 1;
+
+# !!! 1112. Highest Grade For Each Student: Write a SQL query to find the highest grade with its corresponding course for each student. 
+# In case of a tie, you should find the course with the smallest course_id.
+Enrollments table:
++------------+-------------------+
+| student_id | course_id | grade |
++------------+-----------+-------+
+| 2          | 2         | 95    |
+| 2          | 3         | 95    |
+| 1          | 1         | 90    |
+| 1          | 2         | 99    |
+| 3          | 1         | 80    |
+| 3          | 2         | 75    |
+| 3          | 3         | 82    |
++------------+-----------+-------+
+## Point: 1.一开始不知道怎么把最小的course_id取出来，试了几次都不是想要的结果，但是仔细想想，做这题的逻辑是先找出max(grade),再提出min(course_id)，我试过如果直接根据max(grade)是
+## 无法正确地提取出相应地course_id，那么如果把(student, grade)同时作为索引，在上一层中提取出满足max(grade)的，再用min(course_id)筛选即可
+## 2.另一种方法是用windows function
+
+### Solution 1:
+SELECT student_id, min(course_id) AS course_id, grade
+FROM Enrollments
+WHERE (student_id, grade) IN
+(SELECT student_id, max(grade)
+FROM Enrollments
+GROUP BY student_id)
+GROUP BY student_id, grade
+ORDER BY student_id ASC
+
+### Solution 2: DENSE_RANK() OVER(PARTITION BY)/ROW_NUMBER() OVER(PARTITION BY) window function先将table按grade降序排列，再按course_id升序排列，再插入一列索引值，这样再外层要挑出符合条件的只需要dr=1
+SELECT student_id , course_id , grade from
+(
+select student_id , course_id , grade,
+dense_rank () over (partition by student_id order by grade desc,course_id asc) dr
+from Enrollments
+)
+where dr = 1
+order by student_id;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
