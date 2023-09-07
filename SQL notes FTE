@@ -1,0 +1,25 @@
+# SQL+python notes
+1. To retrieve the first row(record) after group by: 
+    - Use windown function 
+        FIRST_VALUE(A.device_id) OVER (
+           PARTITION BY A.player_id
+           ORDER BY A.event_date)
+    - 另外一种思路是获取最小的row index，在SQL里是间接找到其他列对应的行，然后用WHERE IN 来获取其他列
+        SELECT player_id, device_id FROM Activity 
+          WHERE (player_id, event_date) IN (
+              SELECT player_id, MIN(event_date) FROM Activity GROUP BY player_id)
+    - Using python:
+        .idxmin() can return the index of first occurrence of minimum over requested axis (axis = 0 as default)
+        df = activity.loc[activity.groupby('player_id')['event_date'].idxmin()][['player_id','device_id']]
+
+2. How to realize group cumulative sum?
+  - window function SUM() OVER(PARTITION BY .. ORDER BY..)
+      SUM(games_played) over(partition by player_id order by event_date) as games_played_so_far
+  p.s. SUM() OVER(PARTITON BY) could only realize group sum, not cumulative
+  p.s.s About sliding window aggregation, for example, 统计每组近三个月的销售情况
+        包含统计月：
+        - SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and 0 following)  
+       or SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and  and current row)
+        不包含统计月：
+        - range between 3 preceding and 1 preceding
+        or range between 3 preceding and -1 following
