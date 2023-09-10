@@ -1,5 +1,5 @@
 # SQL+python notes
-1. To retrieve the first row(record) after group by: 
+1. (512) To retrieve the first row(record) after group by: 
     - Use windown function 
         FIRST_VALUE(A.device_id) OVER (
            PARTITION BY A.player_id
@@ -12,7 +12,7 @@
         .idxmin() can return the index of first occurrence of minimum over requested axis (axis = 0 as default)
         df = activity.loc[activity.groupby('player_id')['event_date'].idxmin()][['player_id','device_id']]
 
-2. How to realize group cumulative sum?
+2.（534) How to realize group cumulative sum?
   - window function SUM() OVER(PARTITION BY .. ORDER BY..)
       SUM(games_played) over(partition by player_id order by event_date) as games_played_so_far
   p.s. SUM() OVER(PARTITON BY) could only realize group sum, not cumulative
@@ -23,3 +23,46 @@
         不包含统计月：
         - range between 3 preceding and 1 preceding
         or range between 3 preceding and -1 following
+  - Using pandas: groupby().transform(pd.Series.cumsum)
+        df["games_played_so_far"] = df.groupby("player_id")["games_played"].transform(pd.Series.cumsum)
+
+3. (550) 分组挑选出日期只相差一天的运动员与所有运动员之间的比例
+    - First, when it refers to date difference: use DATEDIFF()
+    - use window function: DATEDIFF(event_date, MIN(event_date) OVER(PARTITION BY player_id)) = 1, 用上等于1把新产生的这一列变成一个只有1/0的判断列，可以帮助之后算fraction
+    - 因为不能像python一样很方便的记录下来player_id的总数量，所以用第二条新的一列作为中介记录
+
+    SELECT ROUND(SUM(login)/COUNT(DISTINCT player_id), 2) AS fraction
+    FROM (
+      SELECT
+        player_id,
+        DATEDIFF(event_date, MIN(event_date) OVER(PARTITION BY player_id)) = 1 AS login
+      FROM Activity
+    ) AS t
+
+    - p.s. 我想的方法更复杂一点，我先想把日期列分组往前挪一个，然后两列做差得到日期之间的间隔，用上lag()/lead()， 跟上一个最优方法还是很类似的
+        SELECT player_id, DATEDIFF(event_date,  
+        lag(event_date, 1, "1900-01-01") OVER(partition by player_id order by event_date))=1 as temp
+    FROM Activity
+    - use DATE_SUB() 函数从日期减去指定的时间间隔
+
+4. hard 571. Find Median Given Frequency of Numbers
+with a as (
+    select number,
+           sum(frequency) over (order by number) - frequency as lower_num,
+           sum(frequency) over (order by number) as upper_num,
+           sum(frequency) over () / 2 as medium_num
+    from numbers 
+)
+
+select avg(number) as median
+from a
+where medium_num between lower_num and upper_num
+
+5. How to get the first row of the dataframe?
+在结尾加上 LIMIT 1
+SELECT customer_number
+FROM Orders
+GROUP BY customer_number
+ORDER BY COUNT(order_number) DESC LIMIT 1
+
+6. lag()/lead()重做一遍603
