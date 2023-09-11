@@ -65,4 +65,53 @@ FROM Orders
 GROUP BY customer_number
 ORDER BY COUNT(order_number) DESC LIMIT 1
 
-6. lag()/lead()重做一遍603
+6(consecutive type). lag()/lead()重做一遍603
+    #180.
+    方法一：
+    SELECT distinct Num as ConsecutiveNums
+    FROM Logs
+    WHERE (Id + 1, Num) in (select * from Logs) and (Id + 2, Num) in (select * from Logs)
+    方法二：
+    SELECT distinct(t1.num) as ConsecutiveNums 
+    FROM logs t1, logs t2 , logs t3
+    WHERE t1.id=t2.id+1 AND t2.id=t3.id+1 AND t1.num=t2.num AND t2.num=t3.num
+
+
+7. MySQL如何获得第n行的数据
+  https://blog.csdn.net/belief_009/article/details/123507018
+  https://deepinout.com/sql/sql-questions/123_sql_how_do_i_get_the_nth_row_in_a_sql_server_table.html#:~:text=SQL%20%E5%A6%82%E4%BD%95%E8%8E%B7%E5%BE%97%20SQL%20Server%20%E8%A1%A8%E4%B8%AD%E7%9A%84%E7%AC%ACn%E8%A1%8C%201%20%E4%B8%80%E3%80%81%E4%BD%BF%E7%94%A8%20OFFSET,TOP%E3%80%81%E4%BB%A5%E5%8F%8A%20ROW_NUMBER%20%E5%87%BD%E6%95%B0%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E5%9C%A8%20SQL%20Server%20%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E8%8E%B7%E5%8F%96%E8%A1%A8%E7%9A%84%E7%AC%ACn%E8%A1%8C%E3%80%82%20%E6%AF%8F%E7%A7%8D%E6%96%B9%E6%B3%95%E9%83%BD%E6%9C%89%E5%85%B6%E9%80%82%E7%94%A8%E7%9A%84%E5%9C%BA%E6%99%AF%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E6%A0%B9%E6%8D%AE%E5%85%B7%E4%BD%93%E6%83%85%E5%86%B5%E6%9D%A5%E9%80%89%E6%8B%A9%E5%90%88%E9%80%82%E7%9A%84%E6%96%B9%E6%B3%95%E3%80%82%20
+  https://www.begtut.com/mysql/mysql-nth_value-function.html
+    - LIMIT 1 OFFSET N-1
+    - LIMIT 1, N-1
+    - LIMIT N-1, 1
+    #177.
+        CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT
+        BEGIN
+        SET N = N - 1;
+          RETURN (
+                IFNULL((SELECT DISTINCT(salary)
+                FROM Employee
+                ORDER BY salary DESC
+                LIMIT N, 1), NULL)
+                #LIMIT 1 OFFSET N - 1
+        );
+        END
+
+8. 重写184， 最主要是where里面那个() 
+
+
+in
+SELECT D.name as Department, E.name AS Employee, E.salary as Salary
+FROM Employee E
+LEFT JOIN Department D
+on E.departmentId = D.id
+WHERE (E.departmentID, E.salary) in
+(SELECT departmentId, MAX(salary)
+FROM Employee 
+GROUP BY departmentId)
+
+8. 排序问题 RANK(), DENSE_RANK(), ROW_NUMBER
+    - RANK() 并列跳跃排名，相同的值保留重复名次， 遇到下一个不同值时， 跳跃到总共的排名
+    - DENSE_RANK() 并列连续排名，相同的值保留重复名次， 遇到下一个不同值时，依然按照连续数字排名
+    - ROW_NUMBER() 连续排名
+    # 注意as后面的列别名如果是数据库的关键字,那么需要这个别名用引号引起来,否则会报错
