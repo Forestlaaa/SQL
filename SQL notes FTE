@@ -1,4 +1,12 @@
 # SQL+python notes
+* SQL 是用filter 条件对整个表（或者self-join)进行操作，不是单独针对行或列的操作
+
+* 记住，要取某一列最小值或最大值所在的行只能这样写：
+        SELECT * FROM Candidate
+            WHERE A = (SELECT MIN(A)/MAX(A) FROM Vote) 或者用in
+* group by 1 means to group by the first column of your result set regardless of what it's called. You can do the same with ORDER BY .
+* Use IS NULL 或反过来弄掉不满足条件的其他行 not in （不满足条件的编号）
+
 1. (512) To retrieve the first row(record) after group by: 
     - Use windown function 
         FIRST_VALUE(A.device_id) OVER (
@@ -19,7 +27,7 @@
   p.s.s About sliding window aggregation, for example, 统计每组近三个月的销售情况
         包含统计月：
         - SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and 0 following)  
-       or SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and  and current row)
+       or SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and current row)
         不包含统计月：
         - range between 3 preceding and 1 preceding
         or range between 3 preceding and -1 following
@@ -115,3 +123,71 @@ GROUP BY departmentId)
     - DENSE_RANK() 并列连续排名，相同的值保留重复名次， 遇到下一个不同值时，依然按照连续数字排名
     - ROW_NUMBER() 连续排名
     # 注意as后面的列别名如果是数据库的关键字,那么需要这个别名用引号引起来,否则会报错
+
+9. 10/31/2023 重做574
+-不会的时候就用 with x as () 弄一个临时表,然后再从这个临时表里面query
+
+10. 10/31/2023 重做578
+
+
+11.10/31/2023 重做579
+Write a solution to calculate the cumulative salary summary for every employee in a single unified table.
+
+The cumulative salary summary for an employee can be calculated as follows:
+
+For each month that the employee worked, sum up the salaries in that month and the previous two months. This is their 3-month sum for that month. If an employee did not work for the company in previous months, their effective salary for those months is 0.
+Do not include the 3-month sum for the most recent month that the employee worked for in the summary.
+Do not include the 3-month sum for any month the employee did not work.
+Return the result table ordered by id in ascending order. In case of a tie, order it by month in descending order.
+The result format is in the following example.
+Example 1:
+
+Input: 
+Employee table:
++----+-------+--------+
+| id | month | salary |
++----+-------+--------+
+| 1  | 1     | 20     |
+| 2  | 1     | 20     |
+| 1  | 2     | 30     |
+| 2  | 2     | 30     |
+| 3  | 2     | 40     |
+| 1  | 3     | 40     |
+| 3  | 3     | 60     |
+| 1  | 4     | 60     |
+| 3  | 4     | 70     |
+| 1  | 7     | 90     |
+| 1  | 8     | 90     |
++----+-------+--------+
+Output: 
++----+-------+--------+
+| id | month | Salary |
++----+-------+--------+
+| 1  | 7     | 90     |
+| 1  | 4     | 130    |
+| 1  | 3     | 90     |
+| 1  | 2     | 50     |
+| 1  | 1     | 20     |
+| 2  | 1     | 20     |
+| 3  | 3     | 100    |
+| 3  | 2     | 40     |
++----+-------+--------+
+
+首先，我想到了要用sliding windows，但是我不知道要怎么筛掉每组最后一行
+**重复出现，就像之前的答案用上where (两列) in 筛选条件一样，这里用where not in 去筛掉出现的最后一个月
+SELECT id, month, SUM(salary) OVER(partition by id order by month range between 2 preceding and current row) AS Salary
+FROM Employee
+WHERE (id, month) not in (SELECT id, MAX(month) AS month FROM Employee GROUP BY id)
+order by id, month DESC
+
+另一种方法，self-join
+**首先用self join把表cross join起来，这样A表每个id的每一个月都会重复出现出现在summary的月；
+**因为是3-month sum，所以这时候用AND B.Month BETWEEN (A.Month-3) AND (A.Month-1)条件来摆脱不想要的行
+**我比较谨慎用group by 是因为经常只返回group的第一行
+SELECT   A.Id, MAX(B.Month) as Month, SUM(B.Salary) as Salary
+FROM     Employee A, Employee B
+WHERE    A.Id = B.Id AND B.Month BETWEEN (A.Month-3) AND (A.Month-1)
+GROUP BY A.Id, A.Month
+ORDER BY Id, Month DESC
+
+
