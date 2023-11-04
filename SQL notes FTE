@@ -6,6 +6,8 @@
             WHERE A = (SELECT MIN(A)/MAX(A) FROM Vote) 或者用in
 * group by 1 means to group by the first column of your result set regardless of what it's called. You can do the same with ORDER BY .
 * Use IS NULL 或反过来弄掉不满足条件的其他行 not in （不满足条件的编号）
+* COUNT(column_name) 函数返回指定列的值的数目（NULL 不计入）
+* The HAVING clause was added to SQL because the WHERE keyword cannot be used with aggregate functions.
 
 1. (512) To retrieve the first row(record) after group by: 
     - Use windown function 
@@ -128,7 +130,42 @@ GROUP BY departmentId)
 -不会的时候就用 with x as () 弄一个临时表,然后再从这个临时表里面query
 
 10. 10/31/2023 重做578
+# count()
+* COUNT(column_name) 函数返回指定列的值的数目（NULL 不计入）
+* COUNT(DISTINCT column_name) 函数返回指定列的不同值的数目
+11/4 重做578 solution:
+The answer rate for a question is the number of times a user answered the question by the number of times a user showed the question.
+Write a solution to report the question that has the highest answer rate. If multiple questions have the same maximum answer rate, report the question with the smallest question_id.
+Input: 
+SurveyLog table:
++----+--------+-------------+-----------+-------+-----------+
+| id | action | question_id | answer_id | q_num | timestamp |
++----+--------+-------------+-----------+-------+-----------+
+| 5  | show   | 285         | null      | 1     | 123       |
+| 5  | answer | 285         | 124124    | 1     | 124       |
+| 5  | show   | 369         | null      | 2     | 125       |
+| 5  | skip   | 369         | null      | 2     | 126       |
++----+--------+-------------+-----------+-------+-----------+
+Output: 
++------------+
+| survey_log |
++------------+
+| 285        |
++------------+
+# 算出answer_rate, 按answer rate 排序]一步完成
+# My answer: 不需要group by question_id, count()本来就会计算每个id里不一样的值, 不需要嵌套表
+SELECT question_id AS survey_log FROM
+(SELECT *, count(answer_id)/(count(question_id)/2) as answer_rate
+FROM SurveyLog
+GROUP BY id, question_id) AS T
+ORDER BY answer_rate DESC, question_id ASC LIMIT 1
 
+# Other answer: study the case when usage in count(), remember using NULL; while using my (count(question_id)/2) as denominator will be optimized
+SELECT  question_id as survey_log
+FROM SurveyLog
+GROUP BY 1
+ORDER BY (count(answer_id) / count(case when action = 'show' then question_id ELSE null end )) desc, 1 asc
+LIMIT 1
 
 11.10/31/2023 重做579
 Write a solution to calculate the cumulative salary summary for every employee in a single unified table.
@@ -190,4 +227,85 @@ WHERE    A.Id = B.Id AND B.Month BETWEEN (A.Month-3) AND (A.Month-1)
 GROUP BY A.Id, A.Month
 ORDER BY Id, Month DESC
 
+12. 11/4/2023 重做585
+Write a solution to report the sum of all total investment values in 2016 tiv_2016, for all policyholders who:
+
+have the same tiv_2015 value as one or more other policyholders, and
+are not located in the same city as any other policyholder (i.e., the (lat, lon) attribute pairs must be unique).
+Round tiv_2016 to two decimal places.
+
+The result format is in the following example.
+Input: 
+Insurance table:
++-----+----------+----------+-----+-----+
+| pid | tiv_2015 | tiv_2016 | lat | lon |
++-----+----------+----------+-----+-----+
+| 1   | 10       | 5        | 10  | 10  |
+| 2   | 20       | 20       | 20  | 20  |
+| 3   | 10       | 30       | 20  | 20  |
+| 4   | 10       | 40       | 40  | 40  |
++-----+----------+----------+-----+-----+
+Output: 
++----------+
+| tiv_2016 |
++----------+
+| 45.00    |
++----------+
+实际上不难，但是我忘记了HAVING()所以兜了一个大圈子:(
+* The HAVING clause was added to SQL because the WHERE keyword cannot be used with aggregate functions.
+# MY Logic: 有两个筛选条件 1. tiv_2015出现的次数大于一;2. 一定要是不同的城市（全表范围内）
+# MY solution: 因为忘记了HAVING所以用window function算tiv_2015出现的次数
+SELECT ROUND(SUM(tiv_2016), 2) AS tiv_2016
+FROM
+(SELECT *, COUNT(tiv_2015) OVER(PARTITION BY tiv_2015 ORDER BY tiv_2015) as appear_time
+FROM Insurance) AS T
+WHERE appear_time > 1 AND pid not in (SELECT A.pid FROM Insurance A, Insurance B WHERE (A.pid <> B.pid AND A.lat = B.lat AND A.lon = B.lon))
+
+# Optimized solution:
+SELECT ROUND(SUM(tiv_2016), 2) AS tiv_2016
+FROM Insurance
+WHERE tiv_2015 IN (
+    SELECT tiv_2015
+    FROM Insurance
+    GROUP BY tiv_2015
+    HAVING COUNT(*) > 1
+)
+AND (lat, lon) IN (
+    SELECT lat, lon
+    FROM Insurance
+    GROUP BY lat, lon
+    HAVING COUNT(*) = 1
+)
+
+602. 11/4/2023 重做
+Write a solution to find the people who have the most friends and the most friends number.
+The test cases are generated so that only one person has the most friends.
+The result format is in the following example.
+Input: 
+RequestAccepted table:
++--------------+-------------+-------------+
+| requester_id | accepter_id | accept_date |
++--------------+-------------+-------------+
+| 1            | 2           | 2016/06/03  |
+| 1            | 3           | 2016/06/08  |
+| 2            | 3           | 2016/06/08  |
+| 3            | 4           | 2016/06/09  |
++--------------+-------------+-------------+
+Output: 
++----+-----+
+| id | num |
++----+-----+
+| 3  | 3   |
++----+-----+
+#逻辑没有问题，有一个地方不知道怎么实现 用UNION()
+# My logic: 1. to find the id who has the largest sum of request and accept times, use UNION() to bring the two columns together
+* The UNION operator is used to combine the result-set of two or more SELECT statements.
+# 再次重申：这里不能select MAX(count(id)) Invalid use of group function
+SELECT id, count(id) AS NUM
+FROM
+(SELECT requester_id id from RequestAccepted
+union all
+select accepter_id id from RequestAccepted) AS T
+group by id
+ORDER BY count(id) DESC LIMIT 1
 
