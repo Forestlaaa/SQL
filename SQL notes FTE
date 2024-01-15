@@ -9,13 +9,15 @@
 * COUNT(column_name) 函数返回指定列的值的数目（NULL 不计入）
 * The HAVING clause was added to SQL because the WHERE keyword cannot be used with aggregate functions.
 * lag(列名, n, default) OVER()往前取n行，lead()往后取n行
+* SQL没有%求余，只有MOD(a, b),可以当作filter condition
 
-1. (512) To retrieve the first row(record) after group by: 
+1. (512) To retrieve the first row(record) after group by:  
     - Use windown function 
+        这个新创造一列取某一列的第一个值
         FIRST_VALUE(A.device_id) OVER (
            PARTITION BY A.player_id
            ORDER BY A.event_date)
-    - 另外一种思路是获取最小的row index，在SQL里是间接找到其他列对应的行，然后用WHERE IN 来获取其他列
+    - ⭐另外一种思路是获取最小的row index，在SQL里是间接找到其他列对应的行，然后用WHERE IN 来获取其他列
         SELECT player_id, device_id FROM Activity 
           WHERE (player_id, event_date) IN (
               SELECT player_id, MIN(event_date) FROM Activity GROUP BY player_id)
@@ -29,8 +31,11 @@
   p.s. SUM() OVER(PARTITON BY) could only realize group sum, not cumulative
   p.s.s About sliding window aggregation, for example, 统计每组近三个月的销售情况
         包含统计月：
-        - SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and 0 following)  
-       or SUM(gmv) OVER(partiton by team_name order by month range between 2 preceding and current row)
+        - SUM(gmv) OVER(partition by team_name order by month range between 2 prece
+
+
+ding and 0 following)  
+       or SUM(gmv) OVER(partition by team_name order by month range between 2 preceding and current row)
         不包含统计月：
         - range between 3 preceding and 1 preceding
         or range between 3 preceding and -1 following
@@ -70,6 +75,7 @@ from a
 where medium_num between lower_num and upper_num
 
 5. How to get the first row of the dataframe?
+问题： 如果在SELECT处用count() AS X, 在order by处能用X吗
 在结尾加上 LIMIT 1
 SELECT customer_number
 FROM Orders
@@ -126,6 +132,8 @@ GROUP BY departmentId)
     - DENSE_RANK() 并列连续排名，相同的值保留重复名次， 遇到下一个不同值时，依然按照连续数字排名
     - ROW_NUMBER() 连续排名
     # 注意as后面的列别名如果是数据库的关键字,那么需要这个别名用引号引起来,否则会报错
+
+158 用到 DENSE_RANK()
 
 9. 10/31/2023 重做574
 -不会的时候就用 with x as () 弄一个临时表,然后再从这个临时表里面query
