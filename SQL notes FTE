@@ -11,6 +11,8 @@
 * lag(列名, n, default) OVER()往前取n行，lead()往后取n行
 * SQL没有%求余，只有MOD(a, b),可以当作filter condition
 * 怎么数group by后组内行数是不是大于某数，用HAVING COUNT(*) > x
+* SQL 可以同时查询两张表, 即 SELECT * FROM [TABLE A], [TABLE B];即当涉及到两个表分开计算的时候，可以用一个query直接搞定
+* IFNULL(, 0)
 
 1. (512) To retrieve the first row(record) after group by:  
     - Use windown function 
@@ -62,7 +64,7 @@ ding and 0 following)
     FROM Activity
     - use DATE_SUB() 函数从日期减去指定的时间间隔
 
-4. hard 571. Find Median Given Frequency of Numbers
+4. median类型：hard 571. Find Median Given Frequency of Numbers
 with a as (
     select number,
            sum(frequency) over (order by number) - frequency as lower_num,
@@ -74,6 +76,9 @@ with a as (
 select avg(number) as median
 from a
 where medium_num between lower_num and upper_num
+
+569. Median Employee Salary
+
 
 5. How to get the first row of the dataframe?
 问题： 如果在SELECT处用count() AS X, 在order by处能用X吗
