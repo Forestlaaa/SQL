@@ -129,7 +129,7 @@ FROM Employee
 GROUP BY departmentId)
 
 8. 排序问题 比如取分组后某一列最大值/最小值对应的行
-    RANK(), DENSE_RANK(), ROW_NUMBER
+    RANK(), DENSE_RANK(), ROW_NUMBER() OVER(PARTITION BY 一个或多个分组列 ORDER BY 一个或多个排序列) 用逗号间隔开来
     - RANK() 并列跳跃排名，相同的值保留重复名次， 遇到下一个不同值时， 跳跃到总共的排名
     - DENSE_RANK() 并列连续排名，相同的值保留重复名次， 遇到下一个不同值时，依然按照连续数字排名
     - ROW_NUMBER() 连续排名
