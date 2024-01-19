@@ -1,6 +1,11 @@
 # SQL+python notes
-*
+框架解题：
+* 遇到很复杂的考虑先搞一个临时表，即 WITH TempTableName1 AS (query), TempTableName2 AS (query), 再从临时表query；临时表利用了硬盘(tempdb数据库)（硬盘算起来更慢），表名变量是占用内存，因此小数据量当然是内存中的表变量更快；
+  当大数据量时，利用表变量消耗内存，大数据量时适合用临时表；
+* 解题如果可以用两个分开的query拼起来得到答案的，用UNION把两个query拼起来；见1164; UNION is the best way to combine SQL query
+* 写query的格式注意规范，要不然不好debug
 
+Small points:
 * SQL 是用filter 条件对整个表（或者self-join)进行操作，不是单独针对行或列的操作
 
 * 记住，要取某一列最小值或最大值所在的行只能这样写：
@@ -15,6 +20,8 @@
 * 怎么数group by后组内行数是不是大于某数，用HAVING COUNT(*) > x
 * SQL 可以同时查询两张表, 即 SELECT * FROM [TABLE A], [TABLE B];即当涉及到两个表分开计算的时候，可以用一个query直接搞定
 * IFNULL(, 0)
+* Note that UNION only appends distinct values. More specifically, when you use UNION, the dataset is appended, and any rows in the appended table that are exactly identical to rows in the first table are dropped. 
+  If you'd like to append all the values from the second table, use UNION ALL. You'll likely use UNION ALL far more often than UNION.
 
 1. (512) To retrieve the first row(record) after group by:  
     - Use windown function 
@@ -500,3 +507,115 @@ Where client_id NOT IN (SELECT users_id FROM Users where banned='Yes')
 AND driver_id NOT IN (SELECT users_id FROM Users where banned='Yes')
 AND request_at between "2013-10-01" AND "2013-10-03"
 GROUP BY request_at
+
+# 1164 
+Write a solution to find the prices of all products on 2019-08-16. Assume the price of all products before any change is 10.
+Return the result table in any order.
+The result format is in the following example.
+Input: 
+Products table:
++------------+-----------+-------------+
+| product_id | new_price | change_date |
++------------+-----------+-------------+
+| 1          | 20        | 2019-08-14  |
+| 2          | 50        | 2019-08-14  |
+| 1          | 30        | 2019-08-15  |
+| 1          | 35        | 2019-08-16  |
+| 2          | 65        | 2019-08-17  |
+| 3          | 20        | 2019-08-18  |
++------------+-----------+-------------+
+Output: 
++------------+-------+
+| product_id | price |
++------------+-------+
+| 2          | 50    |
+| 1          | 35    |
+| 3          | 10    |
++------------+-------+
+
+select distinct product_id, 10 as price from Products where product_id not in(select distinct product_id from Products where change_date <='2019-08-16' )
+union 
+select product_id, new_price as price from Products where (product_id,change_date) in (select product_id , max(change_date) as date from Products where change_date <='2019-08-16' group by product_id)
+
+1194. hard
+The winner in each group is the player who scored the maximum total points within the group. In the case of a tie, the lowest player_id wins.
+Write a solution to find the winner in each group.
+Return the result table in any order.
+The result format is in the following example.
+
+Input: 
+Players table:
++-----------+------------+
+| player_id | group_id   |
++-----------+------------+
+| 15        | 1          |
+| 25        | 1          |
+| 30        | 1          |
+| 45        | 1          |
+| 10        | 2          |
+| 35        | 2          |
+| 50        | 2          |
+| 20        | 3          |
+| 40        | 3          |
++-----------+------------+
+Matches table:
++------------+--------------+---------------+-------------+--------------+
+| match_id   | first_player | second_player | first_score | second_score |
++------------+--------------+---------------+-------------+--------------+
+| 1          | 15           | 45            | 3           | 0            |
+| 2          | 30           | 25            | 1           | 2            |
+| 3          | 30           | 15            | 2           | 0            |
+| 4          | 40           | 20            | 5           | 2            |
+| 5          | 35           | 50            | 1           | 1            |
++------------+--------------+---------------+-------------+--------------+
+Output: 
++-----------+------------+
+| group_id  | player_id  |
++-----------+------------+ 
+| 1         | 15         |
+| 2         | 35         |
+| 3         | 40         |
++-----------+------------+
+
+可能是因为
+
+标准答案：
+select group_id, player_id from 
+(
+    select p.player_id, p.group_id, 
+    row_number() over(partition by p.group_id order by player_total.score desc, p.player_id asc) rank
+    from players p join
+        (
+            select player_id, sum(player_score.score) as score
+            from (
+                    (select first_player as player_id, first_score as score from Matches)
+                        union all
+                    (select second_player as player_id, second_score as score from Matches)
+                 ) player_score 
+            group by player_id
+        ) player_total
+    on p.player_id = player_total.player_id
+) rank_table 
+where rank_table.rank = 1
+
+我的答案：13/14 testcase pass
+#用left join的时候显然因为比赛设置很多Player的score会是null,可以先用UNION把两个合起来，不会出现null的问题
+# 可以用join因为如果没有分就不参与排名，所以不用Left join
+# 还是不知道我的错在哪儿
+SELECT group_id, player_id
+FROM
+(SELECT *, ROW_NUMBER() OVER(PARTITION BY group_id ORDER BY first_score+second_score DESC) as rnk
+FROM
+(SELECT player_id, group_id, SUM(IFNULL(first_score, 0)) AS first_score
+FROM Players P
+LEFT JOIN (SELECT first_player, first_score FROM Matches) M1
+ON P.player_id = M1.first_player
+GROUP BY player_id) T1
+LEFT JOIN 
+(SELECT player_id, group_id, SUM(IFNULL(second_score, 0)) AS second_score
+FROM Players P
+LEFT JOIN (SELECT second_player, second_score FROM Matches) M2
+ON P.player_id = M2.second_player
+GROUP BY player_id) T2
+using(player_id, group_id)) T
+WHERE rnk = 1
