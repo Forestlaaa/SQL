@@ -22,6 +22,8 @@ Small points:
 * IFNULL(, 0)
 * Note that UNION only appends distinct values. More specifically, when you use UNION, the dataset is appended, and any rows in the appended table that are exactly identical to rows in the first table are dropped. 
   If you'd like to append all the values from the second table, use UNION ALL. You'll likely use UNION ALL far more often than UNION.
+* 用窗口函数会留下所有的行，如果不用WHERE或HAVING的话，这个时候可以考虑用SUM(), 
+* 日期： 对于date类型，可以用year(date), month(date), day(month)提取date中的年月日，还可以用DATE_FORMAT(C.trans_date, '%Y-%m')
 
 1. (512) To retrieve the first row(record) after group by:  
     - Use windown function 
